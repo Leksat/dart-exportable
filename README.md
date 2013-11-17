@@ -1,8 +1,8 @@
-The library provides the `Exportable` class- a mixin providing an ability to
+The library provides the `Exportable` class - a mixin providing an ability to
 export objects to Maps or JSON. Useful for data models: storing in databases as
 `Map`s, or passing between client/server as JSON.
 
-Properties od a class that is mixed with `Exportable` could be
+Properties of a class that is mixed with `Exportable` could be
 
 * any type supported by JSON (see [JsonEncoder.convert()](http://api.dartlang.org/docs/channels/stable/latest/dart_convert/JsonEncoder.html#convert))
 * any calss that mixes `Exportable`
