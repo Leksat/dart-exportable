@@ -105,6 +105,27 @@ class Exportable {
     return toJson();
   }
 
+  dynamic operator [](String propertyName) {
+    InstanceMirror thisMirror = reflect(this);
+    Symbol symbol = new Symbol(propertyName);
+    if (_fieldExists(symbol, thisMirror.type)) {
+      return thisMirror.getField(symbol).reflectee;
+    }
+    return null;
+  }
+
+  void operator []=(String propertyName, dynamic value) {
+    InstanceMirror thisMirror = reflect(this);
+    Symbol symbol = new Symbol(propertyName);
+    if (_fieldExists(symbol, thisMirror.type)) {
+      thisMirror.setField(symbol, value);
+    }
+  }
+
+  static bool _fieldExists(Symbol fieldSymbol, ClassMirror classMirror) {
+    return _collectPublicVariableMirrors(classMirror).containsKey(fieldSymbol);
+  }
+
   static dynamic _exportSimpleValue(value) {
     if (_isJsonSupported(value)) {
       return value;
@@ -136,25 +157,17 @@ class Exportable {
   }
 
   static bool _isExportable(ClassMirror classMirror) {
-    var cached = _cache('_isExportable', classMirror);
-    if (cached != null) {
-      return cached;
-    }
     List<ClassMirror> allClassMirrors = _getAllClassMirrors(classMirror);
     for (var i = 0; i < allClassMirrors.length; i++) {
       if (allClassMirrors[i].hasReflectedType
           && allClassMirrors[i].reflectedType == Exportable) {
-        return _cache('_isExportable', classMirror, true);
+        return true;
       }
     }
-    return _cache('_isExportable', classMirror, false);
+    return false;
   }
 
   static Map<Symbol, VariableMirror> _collectPublicVariableMirrors(ClassMirror classMirror) {
-    var cached = _cache('_collectPublicVariableMirrors', classMirror);
-    if (cached != null) {
-      return cached;
-    }
     Map<Symbol, VariableMirror> map = {};
     _getAllClassMirrors(classMirror).forEach((ClassMirror classMirror_) {
       classMirror_.declarations.forEach((Symbol symbol, DeclarationMirror declaration) {
@@ -163,14 +176,10 @@ class Exportable {
         }
       });
     });
-    return _cache('_collectPublicVariableMirrors', classMirror, map);
+    return map;
   }
 
   static List<ClassMirror> _getAllClassMirrors(ClassMirror classMirror) {
-    var cached = _cache('_getAllClassMirrors', classMirror);
-    if (cached != null) {
-      return cached;
-    }
     List<ClassMirror> list = [];
     if (!list.contains(classMirror)) {
       list.add(classMirror);
@@ -181,7 +190,7 @@ class Exportable {
     if (classMirror.mixin != classMirror && classMirror.mixin is ClassMirror) {
       list.addAll(_getAllClassMirrors(classMirror.mixin));
     }
-    return _cache('_getAllClassMirrors', classMirror, list);
+    return list;
   }
 
   static Map<Map<String, dynamic>, dynamic> _cache_ = {};
