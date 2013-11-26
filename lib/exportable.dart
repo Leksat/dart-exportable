@@ -187,7 +187,8 @@ class Exportable {
     if (classMirror.superclass is ClassMirror) {
       list.addAll(_getAllClassMirrors(classMirror.superclass));
     }
-    if (classMirror.mixin != classMirror && classMirror.mixin is ClassMirror) {
+    if (!identical(1, 1.0) // http://dartbug.com/14713
+        && classMirror.mixin != classMirror && classMirror.mixin is ClassMirror) {
       list.addAll(_getAllClassMirrors(classMirror.mixin));
     }
     return list;
