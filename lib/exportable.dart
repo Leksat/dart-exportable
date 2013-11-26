@@ -43,7 +43,7 @@ class Exportable {
    * object proprties.
    */
   factory Exportable(Type type, [init]) {
-    var instance = reflectClass(type).newInstance(new Symbol(''), []).reflectee;
+    var instance = reflectClass(type).newInstance(const Symbol(''), []).reflectee;
     if (instance is! Exportable) {
       throw new Exception('Type $type is not mixing Exportable.');
     }
