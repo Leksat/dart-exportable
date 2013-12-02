@@ -3,34 +3,40 @@
  */
 library exportable;
 
+@MirrorsUsed(metaTargets: const[ExportableProperty], override: 'exportable')
 import 'dart:mirrors';
 import 'dart:convert' show JSON;
 
 /**
  * A mixin providing an ability to export objects to [Map]s or JSON.
  *
- * Object properties could be
+ * Object properties should be annotated with @observable, and could be
  *
  * * any type supported by JSON (see [JsonEncoder.convert()])
- * * any calss that mixes [Exportable]
+ * * any class that mixes [Exportable]
  * * [DateTime]
  *
  * Usage example:
  *
  *     class Foo extends Object with Exportable {
- *       String bar;
+ *       @observable String bar;
  *     }
  *
  *     void main() {
  *       Foo foo = new Exportable(Foo); // The same as "new Foo()".
  *       foo.bar = 'Bar';
- *       print(foo.toMap()); // {bar: Bar}
- *       print(foo.toJson()); // {"bar":"Bar"}
- *       print(foo.toString()); // {"bar":"Bar"}
+ *       print(foo.toMap());
+ *       // => {bar: Bar}
+ *       print(foo.toJson());
+ *       // => {"bar":"Bar"}
+ *       print(foo.toString());
+ *       // => {"bar":"Bar"}
  *       Foo baz = new Exportable(Foo, '{"bar":"Baz"}');
- *       print(baz); // {"bar":"Baz"}
+ *       print(baz);
+ *       // => {"bar":"Baz"}
  *       Foo baz2 = new Exportable(Foo, {'bar': 'Baz'});
- *       print(baz2); // {"bar":"Baz"}
+ *       print(baz2);
+ *       // => {"bar":"Baz"}
  *     }
  *
  */
@@ -39,8 +45,8 @@ class Exportable {
   /**
    * Creates a new objects instance, calling the default constructor.
    *
-   * If [init] (could be [String] or [Map]) is passed, it's used for initialize
-   * object proprties.
+   * If [init] (could be [String] or [Map]) is passed, it's used to initialize
+   * object properties.
    */
   factory Exportable(Type type, [init]) {
     var instance = reflectClass(type).newInstance(const Symbol(''), []).reflectee;
@@ -57,17 +63,23 @@ class Exportable {
 
   void initFromMap(Map map) {
     InstanceMirror thisMirror = reflect(this);
-    map.forEach((name, value) {
-      Symbol symbol = new Symbol(name);
+    map.forEach((String name, value) {
       Map<Symbol, VariableMirror> declarations = _collectPublicVariableMirrors(thisMirror.type);
-      if (declarations.containsKey(symbol)) {
-        VariableMirror declaration = declarations[symbol];
-        if (declaration.type is ClassMirror) {
-          Type type = (declaration.type as ClassMirror).reflectedType;
-          if (_isExportable(declaration.type)) {
-            thisMirror.setField(symbol, new Exportable(type, value));
-          } else {
-            thisMirror.setField(symbol, _importSimpleValue(type, value));
+      for (Symbol symbol in declarations.keys) {
+        if (MirrorSystem.getName(symbol) == name) {
+          VariableMirror declaration = declarations[symbol];
+          if (declaration.type is ClassMirror) {
+            for (InstanceMirror meta in declaration.metadata) {
+              if (meta.reflectee is ExportableProperty) {
+                Type type = (declaration.type as ClassMirror).reflectedType;
+                if (_isExportableType(declaration.type)) {
+                  thisMirror.setField(symbol, new Exportable(type, value));
+                } else {
+                  thisMirror.setField(symbol, _importSimpleValue(type, value));
+                }
+                break;
+              }
+            }
           }
         }
       }
@@ -87,9 +99,14 @@ class Exportable {
     Map map = {};
     InstanceMirror thisMirror = reflect(this);
     _collectPublicVariableMirrors(thisMirror.type).forEach((Symbol symbol, VariableMirror declaration) {
-      var value = thisMirror.getField(symbol).reflectee;
-      map[MirrorSystem.getName(symbol)] = value is Exportable
-          ? value.toMap() : _exportSimpleValue(value);
+      for (InstanceMirror meta in declaration.metadata) {
+        if (meta.reflectee is ExportableProperty) {
+          var value = thisMirror.getField(symbol).reflectee;
+          map[MirrorSystem.getName(symbol)] = value is Exportable
+              ? value.toMap() : _exportSimpleValue(value);
+          break;
+        }
+      }
     });
     return map;
   }
@@ -156,7 +173,7 @@ class Exportable {
     return false;
   }
 
-  static bool _isExportable(ClassMirror classMirror) {
+  static bool _isExportableType(ClassMirror classMirror) {
     List<ClassMirror> allClassMirrors = _getAllClassMirrors(classMirror);
     for (var i = 0; i < allClassMirrors.length; i++) {
       if (allClassMirrors[i].hasReflectedType
@@ -171,7 +188,10 @@ class Exportable {
     Map<Symbol, VariableMirror> map = {};
     _getAllClassMirrors(classMirror).forEach((ClassMirror classMirror_) {
       classMirror_.declarations.forEach((Symbol symbol, DeclarationMirror declaration) {
-        if (declaration is VariableMirror && !declaration.isPrivate) {
+        if (declaration is VariableMirror
+            && !declaration.isPrivate
+            && !declaration.isStatic
+            && !declaration.isFinal) {
           map[symbol] = declaration;
         }
       });
@@ -206,4 +226,9 @@ class Exportable {
     }
     return value;
   }
+}
+
+const ExportableProperty exportable = const ExportableProperty();
+class ExportableProperty {
+  const ExportableProperty();
 }
