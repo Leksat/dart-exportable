@@ -41,3 +41,7 @@ Usage example:
 * Describe annotation difference of Dart VM and dart2js modes.
 * Should we really annotate an exportable class with @Export(), if it's not
   supposed to be used as a property of another Exportable class?
+* Check why dart2js says
+  "Hint: X methods retained for use by dart:mirrors out of X total methods (X%)"
+  (seems like we have 1 retained method for one exportable class... is this a
+  constructor?)
