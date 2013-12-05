@@ -3,7 +3,7 @@ export objects to Maps or JSON. Useful for data models: storing in databases as
 `Map`s, or passing between client/server as JSON.
 
 Properties of a class that is mixed with `Exportable` and wanted to be
-exportable should be annotated with `@observable`, and could be
+exportable should be annotated with `@export`, and could be
 
 * any type supported by JSON (see [JsonEncoder.convert()](http://api.dartlang.org/docs/channels/stable/latest/dart_convert/JsonEncoder.html#convert))
 * any calss that mixes `Exportable`
@@ -38,3 +38,4 @@ Usage example:
 * Refactor: provide a property which will contain all information about types,
   declarations, etc. Should be initialized once on the first call.
 * Provide more information/examples in the README.
+* Describe annotation difference of Dart VM and dart2js modes.
