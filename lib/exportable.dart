@@ -3,7 +3,7 @@
  */
 library exportable;
 
-@MirrorsUsed(metaTargets: const[ExportableProperty], override: 'exportable')
+@MirrorsUsed(metaTargets: const[Export], override: 'exportable')
 import 'dart:mirrors';
 import 'dart:convert' show JSON;
 
@@ -18,8 +18,9 @@ import 'dart:convert' show JSON;
  *
  * Usage example:
  *
+ *     @Export(Foo)
  *     class Foo extends Object with Exportable {
- *       @observable String bar;
+ *       @export String bar;
  *     }
  *
  *     void main() {
@@ -63,25 +64,16 @@ class Exportable {
 
   void initFromMap(Map map) {
     InstanceMirror thisMirror = reflect(this);
+    List<VariableMirror> declarations = _collectExportableVariableMirrors(thisMirror.type);
     map.forEach((String name, value) {
-      Map<Symbol, VariableMirror> declarations = _collectPublicVariableMirrors(thisMirror.type);
-      for (Symbol symbol in declarations.keys) {
-        if (MirrorSystem.getName(symbol) == name) {
-          VariableMirror declaration = declarations[symbol];
-          if (declaration.type is ClassMirror) {
-            for (InstanceMirror meta in declaration.metadata) {
-              if (meta.reflectee is ExportableProperty) {
-                Type type = (declaration.type as ClassMirror).reflectedType;
-                if (_isExportableType(declaration.type)) {
-                  thisMirror.setField(symbol, new Exportable(type, value));
-                } else {
-                  thisMirror.setField(symbol, _importSimpleValue(type, value));
-                }
-                break;
-              }
-            }
-          }
-        }
+      VariableMirror declaration = declarations.firstWhere((VariableMirror declaration) {
+        return MirrorSystem.getName(declaration.simpleName) == name;
+      });
+      Type type = _getTypeFromVariableMirror(declaration);
+      if (type != null && _isExportableType(type)) {
+        thisMirror.setField(declaration.simpleName, new Exportable(type, value));
+      } else {
+        thisMirror.setField(declaration.simpleName, _importSimpleValue(type, value));
       }
     });
   }
@@ -98,16 +90,11 @@ class Exportable {
   Map toMap() {
     Map map = {};
     InstanceMirror thisMirror = reflect(this);
-    _collectPublicVariableMirrors(thisMirror.type).forEach((Symbol symbol, VariableMirror declaration) {
-      for (InstanceMirror meta in declaration.metadata) {
-        if (meta.reflectee is ExportableProperty) {
-          var value = thisMirror.getField(symbol).reflectee;
-          map[MirrorSystem.getName(symbol)] = value is Exportable
-              ? value.toMap() : _exportSimpleValue(value);
-          break;
-        }
-      }
-    });
+    for (VariableMirror declaration in _collectExportableVariableMirrors(thisMirror.type)) {
+      var value = thisMirror.getField(declaration.simpleName).reflectee;
+      map[MirrorSystem.getName(declaration.simpleName)] = value is Exportable
+          ? value.toMap() : _exportSimpleValue(value);
+    }
     return map;
   }
 
@@ -115,32 +102,11 @@ class Exportable {
     return JSON.encode(toMap());
   }
 
-  /**
+/**
    * An alias for [toJson].
    */
   String toString() {
     return toJson();
-  }
-
-  dynamic operator [](String propertyName) {
-    InstanceMirror thisMirror = reflect(this);
-    Symbol symbol = new Symbol(propertyName);
-    if (_fieldExists(symbol, thisMirror.type)) {
-      return thisMirror.getField(symbol).reflectee;
-    }
-    return null;
-  }
-
-  void operator []=(String propertyName, dynamic value) {
-    InstanceMirror thisMirror = reflect(this);
-    Symbol symbol = new Symbol(propertyName);
-    if (_fieldExists(symbol, thisMirror.type)) {
-      thisMirror.setField(symbol, value);
-    }
-  }
-
-  static bool _fieldExists(Symbol fieldSymbol, ClassMirror classMirror) {
-    return _collectPublicVariableMirrors(classMirror).containsKey(fieldSymbol);
   }
 
   static dynamic _exportSimpleValue(value) {
@@ -152,6 +118,9 @@ class Exportable {
     return null;
   }
 
+  /**
+   * [type] could be null here.
+   */
   static dynamic _importSimpleValue(Type type, value) {
     if (type == DateTime && value is String) {
       return DateTime.parse(value).toLocal();
@@ -173,30 +142,34 @@ class Exportable {
     return false;
   }
 
-  static bool _isExportableType(ClassMirror classMirror) {
-    List<ClassMirror> allClassMirrors = _getAllClassMirrors(classMirror);
-    for (var i = 0; i < allClassMirrors.length; i++) {
-      if (allClassMirrors[i].hasReflectedType
-          && allClassMirrors[i].reflectedType == Exportable) {
+  static bool _isExportableType(Type type) {
+    for (ClassMirror classMirror in _getAllClassMirrors(reflectClass(type))) {
+      if (classMirror.hasReflectedType
+          && classMirror.reflectedType == Exportable) {
         return true;
       }
     }
     return false;
   }
 
-  static Map<Symbol, VariableMirror> _collectPublicVariableMirrors(ClassMirror classMirror) {
-    Map<Symbol, VariableMirror> map = {};
-    _getAllClassMirrors(classMirror).forEach((ClassMirror classMirror_) {
-      classMirror_.declarations.forEach((Symbol symbol, DeclarationMirror declaration) {
+  static List<VariableMirror> _collectExportableVariableMirrors(ClassMirror classMirror) {
+    List<VariableMirror> list = [];
+    for (ClassMirror classMirror_ in _getAllClassMirrors(classMirror)) {
+      for (DeclarationMirror declaration in classMirror_.declarations.values) {
         if (declaration is VariableMirror
             && !declaration.isPrivate
             && !declaration.isStatic
             && !declaration.isFinal) {
-          map[symbol] = declaration;
+          for (InstanceMirror meta in declaration.metadata) {
+            if (meta.reflectee is Export) {
+              list.add(declaration);
+              break;
+            }
+          }
         }
-      });
-    });
-    return map;
+      }
+    }
+    return list;
   }
 
   static List<ClassMirror> _getAllClassMirrors(ClassMirror classMirror) {
@@ -207,28 +180,56 @@ class Exportable {
     if (classMirror.superclass is ClassMirror) {
       list.addAll(_getAllClassMirrors(classMirror.superclass));
     }
-    if (!identical(1, 1.0) // http://dartbug.com/14713
-        && classMirror.mixin != classMirror && classMirror.mixin is ClassMirror) {
+
+    // When running in JS, the ClassMirror.mixin getter does not exists.
+    // Basically, if we have
+    //     class A extends B with C {}
+    //     class B {}
+    //     class C {}
+    // in JS context it looks like
+    //     class A extends B {}
+    //     class B extends C {}
+    //     class C {}
+    // So, actually, we have the same class list in the end.
+    // This is described in http://dartbug.com/14713
+    if (identical(1, 1.0)) {
+      return list;
+    }
+
+    if (classMirror.mixin != classMirror && classMirror.mixin is ClassMirror) {
       list.addAll(_getAllClassMirrors(classMirror.mixin));
     }
     return list;
   }
 
-  static Map<Map<String, dynamic>, dynamic> _cache_ = {};
-  static dynamic _cache(String type, key, [value]) {
-    Map<String, dynamic> id = {type: key};
-    if (value == null) {
-      if (_cache_.containsKey(id)) {
-        return _cache_[id];
+  /**
+   * May return null if there is no way to detect type.
+   */
+  static Type _getTypeFromVariableMirror(VariableMirror declaration) {
+    // First try to fetch the Type from the declaration itself. This works in
+    // Dart VM context: for some reason VariableMirror.type is the ClassMirror,
+    // but not the TypeMirror as said in the documentation. We need exactly
+    // ClassMirror, because there is no way to fetch the Type from the
+    // TypeMirror.
+    if (declaration.type is ClassMirror) {
+      ClassMirror classMirror = declaration.type;
+      if (classMirror.hasReflectedType) {
+        return classMirror.reflectedType;
       }
-    } else {
-      _cache_[id] = value;
     }
-    return value;
+    // Now try to fetch the Type from the metadata, if it was specified.
+    for (InstanceMirror meta in declaration.metadata) {
+      if (meta.reflectee is Export) {
+        return (meta.reflectee as Export).type;
+      }
+    }
+    // We should newer reach this line.
+    return null;
   }
 }
 
-const ExportableProperty exportable = const ExportableProperty();
-class ExportableProperty {
-  const ExportableProperty();
+const export = const Export();
+class Export {
+  final Type type;
+  const Export([this.type]);
 }
