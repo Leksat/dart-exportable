@@ -11,9 +11,9 @@ exportable should be annotated with `@export`, and could be
 
 Usage example:
 
-    @observable
+    @Export(Foo)
     class Foo extends Object with Exportable {
-      @observable String bar;
+      @export String bar;
     }
 
     void main() {
