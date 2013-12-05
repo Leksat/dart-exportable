@@ -1,3 +1,11 @@
+##### TODO
+
+* Refactor: provide a property which will contain all information about types,
+  declarations, etc. Should be initialized once on the first call.
+* Provide more information/examples in the README.
+
+##### Description
+
 The library provides the `Exportable` class - a mixin providing an ability to
 export objects to Maps or JSON. Useful for data models: storing in databases as
 `Map`s, or passing between client/server as JSON.
