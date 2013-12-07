@@ -16,7 +16,9 @@ Usage example:
     }
 
     void main() {
-      Foo foo = new Exportable(Foo); // The same as "new Foo()".
+      Foo foo = new Exportable(Foo);
+      // The same as
+      // Foo foo = new Foo();
       foo.bar = 'Bar';
       print(foo.toMap());
       // => {bar: Bar}
@@ -25,9 +27,15 @@ Usage example:
       print(foo.toString());
       // => {"bar":"Bar"}
       Foo baz = new Exportable(Foo, '{"bar":"Baz"}');
+      // The same as
+      // Foo baz = new Foo();
+      // baz.initFromJson('{"bar":"Baz"}');
       print(baz);
       // => {"bar":"Baz"}
       Foo baz2 = new Exportable(Foo, {'bar': 'Baz'});
+      // The same as
+      // Foo baz2 = new Foo();
+      // baz2.initFromMap({'bar': 'Baz'});
       print(baz2);
       // => {"bar":"Baz"}
     }
