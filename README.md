@@ -11,7 +11,6 @@ exportable should be annotated with `@export`, and could be
 
 Usage example:
 
-    @Export(Foo)
     class Foo extends Object with Exportable {
       @export String bar;
     }
@@ -33,12 +32,36 @@ Usage example:
       // => {"bar":"Baz"}
     }
 
+##### Metadata: Dart VM vs dart2js
+
+Metadata annotations are used to
+
+* let the Exportable class know which properties could be exported or imported,
+* allow tree-shaking of a code.
+
+When running in JS context, there are some difficulties with type detecting. So,
+here are some annotation rules.
+
+If you plan to use exportable models with **Dart VM only**:
+
+* Each exportable property of an exportable class should be annotated with
+  `@export`.
+* If you need a tree-shaking: annotate an exportable class itself. But this is
+  not mandatory.
+
+If you plan to use exportable models with **dart2js**:
+
+* Each exportable property of a JSON supported class should be annotated with
+  `@export`.
+* Properties of a non JSON supported class
+  (see [JsonEncoder.convert()](http://api.dartlang.org/docs/channels/stable/latest/dart_convert/JsonEncoder.html#convert))
+  should be annotated with `@Export(<type>)`, where `<type>` is a type of a
+  property.
+* Exportable class itself should be annotated with `@export`.
+
 ##### TODO
 
 * Provide more information/examples in the README.
-* Describe annotation difference of Dart VM and dart2js modes.
-* Should we really annotate an exportable class with @Export(), if it's not
-  supposed to be used as a property of another Exportable class?
 * Check why dart2js says
   "Hint: X methods retained for use by dart:mirrors out of X total methods (X%)"
   (seems like we have 1 retained method for one exportable class... is this a
