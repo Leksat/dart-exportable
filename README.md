@@ -74,3 +74,4 @@ If you plan to use exportable models with **dart2js**:
   "Hint: X methods retained for use by dart:mirrors out of X total methods (X%)"
   (seems like we have 1 retained method for one exportable class... is this a
   constructor?)
+* Write tests!
