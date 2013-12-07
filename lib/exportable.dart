@@ -43,6 +43,14 @@ import 'dart:convert' show JSON;
  */
 class Exportable {
 
+  List<PropertyData> __propertiesData;
+  List<PropertyData> get _propertiesData {
+    if (__propertiesData == null) {
+      __propertiesData = _collectExportableProperties(this);
+    }
+    return __propertiesData;
+  }
+
   /**
    * Creates a new objects instance, calling the default constructor.
    *
@@ -64,18 +72,15 @@ class Exportable {
 
   void initFromMap(Map map) {
     InstanceMirror thisMirror = reflect(this);
-    List<VariableMirror> declarations = _collectExportableVariableMirrors(thisMirror.type);
-    map.forEach((String name, value) {
-      VariableMirror declaration = declarations.firstWhere((VariableMirror declaration) {
-        return MirrorSystem.getName(declaration.simpleName) == name;
-      });
-      Type type = _getTypeFromVariableMirror(declaration);
-      if (type != null && _isExportableType(type)) {
-        thisMirror.setField(declaration.simpleName, new Exportable(type, value));
-      } else {
-        thisMirror.setField(declaration.simpleName, _importSimpleValue(type, value));
+    for (PropertyData propertyData in _propertiesData) {
+      if (map.containsKey(propertyData.name)) {
+        if (propertyData.type != null && _isExportableType(propertyData.type)) {
+          thisMirror.setField(propertyData.symbol, new Exportable(propertyData.type, map[propertyData.name]));
+        } else {
+          thisMirror.setField(propertyData.symbol, _importSimpleValue(propertyData.type, map[propertyData.name]));
+        }
       }
-    });
+    }
   }
 
   void initFromJson(String json) {
@@ -89,10 +94,9 @@ class Exportable {
 
   Map toMap() {
     Map map = {};
-    InstanceMirror thisMirror = reflect(this);
-    for (VariableMirror declaration in _collectExportableVariableMirrors(thisMirror.type)) {
-      var value = thisMirror.getField(declaration.simpleName).reflectee;
-      map[MirrorSystem.getName(declaration.simpleName)] = value is Exportable
+    for (PropertyData propertyData in _propertiesData) {
+      var value = reflect(this).getField(propertyData.symbol).reflectee;
+      map[propertyData.name] = value is Exportable
           ? value.toMap() : _exportSimpleValue(value);
     }
     return map;
@@ -226,10 +230,38 @@ class Exportable {
     // We should newer reach this line.
     return null;
   }
+
+  static List<PropertyData> _collectExportableProperties(Exportable instance) {
+    List<PropertyData> list = [];
+    InstanceMirror thisMirror = reflect(instance);
+    List<VariableMirror> declarations = _collectExportableVariableMirrors(thisMirror.type);
+    for (VariableMirror declaration in declarations) {
+      for (InstanceMirror meta in declaration.metadata) {
+        if (meta.reflectee is Export) {
+          list.add(new PropertyData(
+            type: _getTypeFromVariableMirror(declaration),
+            symbol: declaration.simpleName,
+            name: MirrorSystem.getName(declaration.simpleName)
+          ));
+          break;
+        }
+      }
+    }
+    return list;
+  }
 }
 
 const export = const Export();
 class Export {
   final Type type;
+
   const Export([this.type]);
+}
+
+class PropertyData {
+  final Type type;
+  final Symbol symbol;
+  final String name;
+
+  const PropertyData({this.type, this.symbol, this.name});
 }

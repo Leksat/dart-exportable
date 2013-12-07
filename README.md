@@ -35,8 +35,6 @@ Usage example:
 
 ##### TODO
 
-* Refactor: provide a property which will contain all information about types,
-  declarations, etc. Should be initialized once on the first call.
 * Provide more information/examples in the README.
 * Describe annotation difference of Dart VM and dart2js modes.
 * Should we really annotate an exportable class with @Export(), if it's not
