@@ -3,3 +3,6 @@ version: 0.1.0
 description: Provides an ability to export/import simple objects.
 author: Alexander Tkachev <alex.leksat@gmail.com>
 homepage: http://github.com/Leksat/dart-exportable
+
+dev_dependencies:
+  unittest: 'any'
