@@ -10,7 +10,7 @@ import 'dart:convert' show JSON;
 /**
  * A mixin providing an ability to export objects to [Map]s or JSON.
  *
- * Object properties should be annotated with @observable, and could be
+ * Object properties should be annotated with @export, and could be
  *
  * * any type supported by JSON (see [JsonEncoder.convert()])
  * * any class that mixes [Exportable]
