@@ -6,7 +6,7 @@ Properties of a class that is mixed with `Exportable` and wanted to be
 exportable should be annotated with `@export`, and could be
 
 * any type supported by JSON (see [JsonEncoder.convert()](http://api.dartlang.org/docs/channels/stable/latest/dart_convert/JsonEncoder.html#convert))
-* any calss that mixes `Exportable`
+* any class that mixes `Exportable`
 * `DateTime`
 
 Usage example:
