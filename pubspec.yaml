@@ -6,3 +6,5 @@ homepage: http://github.com/Leksat/dart-exportable
 
 dev_dependencies:
   unittest: 'any'
+  test_toolkit: '>=0.5.0'
+  junitconfiguration: ">=1.0.0 <2.0.0"
