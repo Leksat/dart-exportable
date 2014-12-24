@@ -4,6 +4,7 @@ import 'src/simple.dart';
 import 'src/lists.dart';
 import 'src/maps.dart';
 import 'src/nested.dart';
+import 'src/missing.dart';
 
 /**
  * This tests file is for continuous integrations with JUnit compartible xml result.
@@ -15,4 +16,5 @@ main() {
   (new Lists()).call();
   (new Maps()).call();
   (new Nested()).call();
+  (new Missing()).call();
 }

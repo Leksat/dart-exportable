@@ -4,6 +4,7 @@ import 'src/simple.dart';
 import 'src/lists.dart';
 import 'src/maps.dart';
 import 'src/nested.dart';
+import 'src/missing.dart';
 
 /**
  * This tests file is for default Dartium test runner served by `pub serve`. (Works in pair with index.html)
@@ -14,4 +15,5 @@ main() {
   (new Lists()).call();
   (new Maps()).call();
   (new Nested()).call();
+  (new Missing()).call();
 }
